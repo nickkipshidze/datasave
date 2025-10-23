@@ -17,6 +17,9 @@ CLOUDFLARE_DIST = {
     "cloudflared-windows-amd64.exe": "https://github.com/cloudflare/cloudflared/releases/download/2025.10.0/cloudflared-windows-amd64.exe"
 }
 
+# Hmm... probably would move this into a single script later? IDK tho.
+# I love working on projects like these, but it's still stressful, y'know?
+
 def get(verbose=False):
     system = platform.system().lower()
     machine = platform.machine().lower()
@@ -33,8 +36,8 @@ def get(verbose=False):
         raise RuntimeError(f"Unsupported architecture: {machine}")
 
     if verbose: 
-        print(f"Operating system: {system.title()}")
-        print(f"Architecture: {arch}")
+        print(f"* Operating system: {system.title()}")
+        print(f"* Architecture: {arch}")
 
     if system == "windows":
         key = f"cloudflared-windows-{arch}.exe"
@@ -52,10 +55,10 @@ def get(verbose=False):
 
     if os.path.exists(key):
         if verbose:
-            print(f"File \"{key}\" already exists")
+            print(f"* File \"{key}\" already exists")
     else:
         if verbose:
-            print(f"Downloading \"{key}\" from \"{url}\"")
+            print(f"* Downloading \"{key}\" from \"{url}\"")
         urllib.request.urlretrieve(url, key)
         os.chmod(key, os.stat(key).st_mode | stat.S_IEXEC)
 
@@ -78,8 +81,8 @@ def fetchurl(proc, timeout=15):
 
     return None
 
-def start(url="http://localhost:16461/"):
-    cloudflared = get(verbose=False)
+def start(url="http://localhost:16461/", verbose=True):
+    cloudflared = get(verbose)
     cmd = [cloudflared, "tunnel", "--url", url]
 
     creationflags = 0
