@@ -118,40 +118,58 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         if path == "/up":
             content_length = int(self.headers.get("Content-Length", 0))
             content_type = self.headers.get("Content-Type", "")
+
             if "multipart/form-data" not in content_type:
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Content-Type must be multipart/form-data")
+                self.quickres(400, {"Content-Type": "text/plain"}, b"Content-Type must be multipart/form-data")
                 return
 
             boundary = content_type.split("boundary=")[1].encode()
             body = self.rfile.read(content_length)
 
             parts = body.split(b"--" + boundary)
-            for part in parts:
-                if b"Content-Disposition" in part:
-                    header, file_data = part.split(b"\r\n\r\n", 1)
-                    file_data = file_data.rstrip(b"\r\n--")
-                    header_str = header.decode()
-                    if "filename=\"" in header_str:
-                        filename = header_str.split("filename=\"")[1].split("\"")[0]
-                        filename = os.path.join(
-                            settings.UPLOAD_DIR,
-                            os.path.basename(filename)
-                        )
-                        if os.path.exists(filename):
-                            print(f"* \"{filename}\" already exists. Overwriting...")
-                        with open(filename, "wb") as file:
-                            file.write(file_data)
-                        print(f"* Saved \"{filename}\" {os.stat(filename).st_size} bytes")
-                        self.send_response(200)
-                        self.end_headers()
-                        self.wfile.write(f"File \"{filename}\" uploaded successfully.".encode())
-                        return
 
-            self.send_response(400)
-            self.end_headers()
-            self.wfile.write(b"No file found in request")
+            saved_files = []
+
+            for part in parts:
+                if b"Content-Disposition" not in part:
+                    continue
+
+                try:
+                    header, file_data = part.split(b"\r\n\r\n", 1)
+                except ValueError:
+                    continue
+
+                file_data = file_data.rstrip(b"\r\n--")
+                header_str = header.decode(errors="ignore")
+
+                if "filename=\"" not in header_str:
+                    continue
+
+                filename = header_str.split("filename=\"")[1].split("\"")[0]
+                filename = os.path.basename(filename)
+                filepath = os.path.join(settings.UPLOAD_DIR, filename)
+
+                if os.path.exists(filepath):
+                    print(f"* \"{filepath}\" already exists. Overwriting...")
+
+                with open(filepath, "wb") as f:
+                    f.write(file_data)
+
+                print(f"* Saved \"{filepath}\" {os.stat(filepath).st_size} bytes")
+                saved_files.append(filename)
+
+            if not saved_files:
+                self.quickres(400, {"Content-Type": "text/plain"},
+                            b"No file found in request")
+                return
+
+            response = f"Uploaded {len(saved_files)} file(s):\n" + "\n".join(saved_files)
+
+            self.quickres(
+                200,
+                {"Content-Type": "text/plain"},
+                response.encode()
+            )
 
         else:
             self.quickres(
@@ -163,7 +181,7 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 def main():
     if settings.CLOUDFLARE_TUNNEL == True:
         print("* Starting cloudflare tunnel...")
-        cf_proc, cf_addr = cloudflare.start()
+        cf_proc, cf_addr = cloudflare.start(url=f"http://{settings.HOST}:{settings.PORT}/")
         print(f"* Cloudflare tunnel started: {cf_addr}")
     else:
         print("* Skip starting cloudflare tunnel (local only)")
@@ -174,7 +192,7 @@ def main():
     )
 
     try:
-        print("* HTTP server started")
+        print(f"* HTTP server started: http://{settings.HOST}:{settings.PORT}/")
         httpd.serve_forever()
     except KeyboardInterrupt:
         httpd.server_close()

@@ -79,7 +79,7 @@
             <h1>Upload File</h1>
             <p style="color: #5C646C; max-width: 300px;">This page has been made for testing purposes. Send a POST request at /up to upload files programmatically.</p>
             <form action="/up" method="POST" enctype="multipart/form-data">
-                <input type="file" name="file" required>
+                <input type="file" name="file[]" multiple required>
                 <button type="submit">Upload</button>
             </form>
         </div>
