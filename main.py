@@ -181,7 +181,9 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 def main():
     if settings.CLOUDFLARE_TUNNEL == True:
         print("* Starting cloudflare tunnel...")
-        cf_proc, cf_addr = cloudflare.start(url=f"http://{settings.HOST}:{settings.PORT}/")
+        cf_proc, cf_addr = cloudflare.start(
+            url=f"http://{settings.HOST}:{settings.PORT}/"
+        )
         print(f"* Cloudflare tunnel started: {cf_addr}")
     else:
         print("* Skip starting cloudflare tunnel (local only)")
@@ -195,6 +197,7 @@ def main():
         print(f"* HTTP server started: http://{settings.HOST}:{settings.PORT}/")
         httpd.serve_forever()
     except KeyboardInterrupt:
+        cf_proc.kill()
         httpd.server_close()
         exit(0)
 
