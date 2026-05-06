@@ -216,3 +216,6 @@ cloudflared-linux-arm64
 cloudflared-linux-armhf
 cloudflared-windows-386.exe
 cloudflared-windows-amd64.exe
+
+# Other
+data*/
