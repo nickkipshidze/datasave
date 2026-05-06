@@ -81,7 +81,7 @@ def fetchurl(proc, timeout=15):
 
     return None
 
-def start(url="http://localhost:16461/", verbose=True):
+def start(url, verbose=True):
     cloudflared = get(verbose)
     cmd = [cloudflared, "tunnel", "--url", url]
 
